@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Results Table</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            padding: 2rem;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h2 {
+            text-align: center;
+            color: #add9e6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 2rem;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: center;
+        }
+
+        th {
+            background-color: #add9e6;
+            font-weight: bold;
+            color: #000;
+        }
+
+        td {
+            background-color: #fff;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover td {
+            background-color: #e7f6fa;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Smart Contract Vulnerability Report</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>Etherlock</th>
+                <th>Reentrancy</th>
+                <th>Block Dependency</th>
+                <th>Underflow / Overflow</th>
+            </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+    </table>
+
+    <script>
+        const results = JSON.parse(localStorage.getItem('results') || '[]');
+        const tbody = document.getElementById('resultsBody');
+
+        results.forEach(entry => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+        <td>${entry.filename}</td>
+        <td>${entry.vulnerabilities['Etherlock'] ? 'Yes' : 'No'}</td>
+        <td>${entry.vulnerabilities['Reentrancy'] ? 'Yes' : 'No'}</td>
+        <td>${entry.vulnerabilities['Block Dependency'] ? 'Yes' : 'No'}</td>
+        <td>${entry.vulnerabilities['Underflow / Overflow'] ? 'Yes' : 'No'}</td>
+      `;
+            tbody.appendChild(row);
+        });
+    </script>
+</body>
+
+</html>

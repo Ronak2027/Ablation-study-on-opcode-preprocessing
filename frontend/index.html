@@ -1,0 +1,183 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solidity Folder Upload</title>
+    <style>
+        :root {
+            --primary: #add9e6;
+            --text-dark: #333;
+            --bg-light: #f9f9f9;
+            --radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            padding: 2rem;
+            max-width: 800px;
+            margin: auto;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .instructions {
+            margin-bottom: 1rem;
+            background: #ffffff;
+            border-left: 5px solid var(--primary);
+            padding: 1rem;
+            border-radius: var(--radius);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        input[type="file"] {
+            padding: 0.6rem;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .file-info {
+            margin-top: 2rem;
+        }
+
+        .contract-block {
+            margin-bottom: 1.5rem;
+            background: white;
+            padding: 1rem;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+            max-height: 180px;
+        }
+
+        #submitAll {
+            background-color: var(--primary);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius);
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            transition: background-color 0.3s ease;
+            display: none;
+        }
+
+        #submitAll:hover {
+            background-color: #90c6d7;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Solidity Folder Analyzer</h2>
+
+    <div class="instructions">
+        <p><strong>Instructions:</strong></p>
+        <ul>
+            <li>Select a folder containing Solidity files (<code>.sol</code>)</li>
+            <li>A preview will be shown</li>
+            <li>Click <strong>Submit All</strong> to send them backend</li>
+        </ul>
+    </div>
+
+    <input type="file" id="folderInput" webkitdirectory directory multiple />
+    <div class="file-info" id="fileInfo"></div>
+    <button id="submitAll">Submit All</button>
+
+    <script>
+        const folderInput = document.getElementById('folderInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const submitAll = document.getElementById('submitAll');
+        let contractData = [];
+
+        folderInput.addEventListener('change', () => {
+            const files = Array.from(folderInput.files).filter(f => f.name.endsWith('.sol'));
+
+            if (files.length === 0) {
+                alert('No .sol files found in the selected folder.');
+                fileInfo.innerHTML = '';
+                submitAll.style.display = 'none';
+                contractData = [];
+                return;
+            }
+
+            fileInfo.innerHTML = `<p><strong>${files.length}</strong> Solidity file(s) found. Showing previews for 3:</p>`;
+            contractData = [];
+
+            let loaded = 0;
+            const previewFiles = files.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const fullContent = e.target.result;
+
+                    contractData.push({
+                        filename: file.webkitRelativePath,
+                        content: fullContent
+                    });
+
+                    if (previewFiles.includes(file)) {
+                        const preview = fullContent.split('\n').slice(0, 10).join('\n');
+                        const block = document.createElement('div');
+                        block.className = 'contract-block';
+                        block.innerHTML = `
+              <p><strong>${file.webkitRelativePath}</strong></p>
+              <pre>${preview}</pre>
+            `;
+                        fileInfo.appendChild(block);
+                    }
+
+                    loaded++;
+                    if (loaded === files.length) {
+                        submitAll.style.display = 'inline-block';
+                    }
+                };
+                reader.readAsText(file);
+            });
+        });
+
+        submitAll.addEventListener('click', () => {
+            if (contractData.length === 0) {
+                alert('No contracts to submit.');
+                return;
+            }
+
+            fetch('http://localhost:8000/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contracts: contractData })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    localStorage.setItem('results', JSON.stringify(data.results));
+                    window.location.href = 'results.html';
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error submitting contracts.');
+                });
+        });
+    </script>
+</body>
+
+</html>
