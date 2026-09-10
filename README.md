@@ -78,8 +78,8 @@ Solidity-Vuln-Detection/
 ### 1. Environment Setup
 Clone the repository and install dependencies:
 ```bash
-git clone https://github.com/Ronak2027/Ablation-study-on-opcode-pre-processing.git
-cd Ablation-study-on-opcode-pre-processing
+git clone https://github.com/Ronak2027/Ablation-study-on-opcode-preprocessing.git
+cd Ablation-study-on-opcode-preprocessing
 
 # Create virtual environment
 python -m venv venv
