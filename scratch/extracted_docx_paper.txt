@@ -1,0 +1,1345 @@
+ABLATION STUDY OF EVM OPCODE OPERAND PREPROCESSING FOR SMART-CONTRACT VULNERABILITY DETECTION
+
+Shruti Patil Dept. of Computer Engineering SVKM’s NMIMS MPSTME Shirpur, India shrutipatil220705@gmail.com
+
+Ronak AgrawalDept. of Computer Engineering SVKM’s NMIMS MPSTME Shirpur, India agrawalronak432@gmail.com
+
+Mayur Wagh Dept. of Computer Engineering SVKM’s NMIMS MPSTME Shirpur, India mayur.wagh2628@gmail.com
+
+Aishwarya Patil Dept. of Computer Engineering SVKM’s NMIMS MPSTME Shirpur, Indiaaishwaryapatil092005@gmail.com
+
+Vaishnavi Rathod Dept. of Computer Engineering SVKM’s NMIMS MPSTME Shirpur, Indiavaishnavi191005@gmail.com
+
+Kirtesh Gadilohar Dept. of Computer Engineering SVKM’s NMIMS MPSTME Shirpur, India kirtesh.gadilohar438@nmims.in
+
+Dr. Kiran Salunke  Dept. of Computer Engineering SVKM’s NMIMS MPSTME Shirpur, IndiaKiran.Salunke@nmims.edu
+
+Abstract—Smart contracts are automated processes deployed on blockchain-based platforms and can pose major security threats due to vulnerabilities in their deployment process. Machine learning-based methods for the detection of vulnerabilities in smart contracts based on representations obtained from the Solidity code, bytecode and Ethereum Virtual Machine (EVM) opcodes have been widely explored. This base study, on which this research is based, proposes a machine-learning-based approach for the detection of smart contract vulnerabilities based on smart contract bytecode and opcode representations for various types of vulnerabilities. The current study carries out an ablation study of the preprocessing technique used for the detection of vulnerabilities in smart contracts based on opcodes. In particular, it assesses the effect of stripping off the operand value of the EVM PUSH instructions while keeping the opcode itself. Two different techniques of preprocessing are considered, namely with and without the opcode operand value. In order to ensure that the effect is solely attributable to preprocessing, two techniques use the same dataset, train-test split, random seed, TF-IDF feature extraction method and Decision Tree classifier parameters. Four classes of vulnerabilities are assessed: Etherlock, Block Dependency, Integer Underflow/Overflow and Reentrancy. According to the results of the experiments, the exclusion of opcode operand values helps decrease the dimensionality and computational costs without affecting the performance of vulnerability detection; however, the impact of the preprocessing on the detection quality is not homogeneous across the types of vulnerabilities. Specifically, the number of vocabulary terms decreases by about 37-41% while the speed of training is increased by about 1.9-2.8 times. Some classes of vulnerabilities have higher F1-scores as compared to the corresponding F1-scores in case of including operands into preprocessing; other classes have lower values of recall and F1-score. This demonstrates that opcode operand values may have diverse impact on the representation of various vulnerability classes.
+
+Keyword- Smart contracts, Ethereum, EVM bytecode, opcode preprocessing, vulnerability detection, ablation study, machine learning, TF-IDF, Decision Tree.
+
+Introduction
+
+The advent of blockchain has allowed for the creation of smart contracts - computer code used on the blockchain network that performs pre-programmed actions. The security of smart contracts is a critical consideration, since the vulnerability in smart-contract implementations may cause unintended and risky behaviours. The base paper considers vulnerability detection in smart contracts using machine-learning techniques, focusing on detecting multiple types of vulnerabilities based on smart-contracts' representations.
+
+Since smart contracts on Ethereum are ultimately compiled into EVM bytecode, the latter may be analysed on the level of opcodes. That makes opcode analysis relevant in the case of analysing deployed smart contracts. The base paper mentions opcode and pattern-based analysis of compiled bytecode and states that those methods may detect security-related patterns on the level of EVM.
+
+Preprocessing of bytecode is thus an essential step of a machine-learning vulnerability detection pipeline. According to the pre-processing procedure suggested in the base paper, bytecode is represented as opcode-related representations. An example is given in the base paper illustrating the conversion of bytecode to opcode and stripped hexadecimal representations. Specifically, when dealing with PUSH instructions, opcodes may be kept while immediate values of operands may be stripped.
+
+However, the elimination of these operand values also impacts the data available to the machine learning model. The operand values might have constants, addresses, offsets, and other types of values embedded right after the execution of PUSH instructions. Thus, eliminating them impacts the output tokens and the features extracted by the classifier. As a result, the impact of this preprocessing step should be analysed separately and not simply assumed to be always advantageous or disadvantageous.
+
+The current research is an extension of the preprocessing part of the base paper and involves an ablation study where the treatment of opcode operand values is altered while all the other experimental conditions remain unchanged.
+
+Research Problem
+
+The key research question of the study deals with the impact of opcode-value preprocessing on machine learning-based smart contract vulnerability detection. Instead of suggesting a new vulnerability detection technique, this study is centered around the assessment of the impact of the preprocessing technique of opcodes and their values in terms of the impact on the performance of an existing machine learning classification technique.
+
+In order to test the hypothesis of the impact of opcode-value preprocessing, two preprocessing techniques were employed in this study. First, the With Opcode Values preprocessing technique was applied, where the opcode instructions and the operand values were retained. Second, the Without Opcode Values preprocessing technique was used, which kept opcode instructions from PUSH1 to PUSH32, but excluded the following operand values.
+
+In order to compare the impact of both techniques, four datasets of vulnerabilities (Etherlock, Block Dependency, Integer Underflow/Overflow, and Reentrancy) were tested. Both classification technique, its configuration, and evaluation procedure remained the same for both preprocessing techniques. This methodology allowed the independent examination of the impact of operand values.
+
+Research Questions
+
+The research questions posed by this study are as follows:
+
+RQ1: What is the measurable effect of opcode operand value removal on smart contract vulnerability detection performance?
+
+RQ2: Is the effect of opcode operand removal dependent upon the nature of the specific vulnerability type?
+
+RQ3: How does opcode operand removal affect feature dimensions and computation efficiency?
+
+Contributions
+
+This research presents several important contributions. We first conduct a controlled ablation study to investigate the impact of the exclusion of the PUSH operand value from the opcode pre-processing phase. The ablation study allows for direct confrontation of the results from the pre-processing phases that use operand information with those that do not.
+
+Secondly, we assess the proposed in this work pre-processing phases across four categories of vulnerabilities to provide more comprehensive results instead of focusing on a single type of vulnerability. Thirdly, the effectiveness of the two pre-processing phases in terms of accuracy, precision, recall, F1 score, ROC AUC, and confusion matrix will also be compared.
+
+The fourth contribution of the work is the examination of the impact of operand removal on the dimensionality of features through the assessment of the decrease in the size of the vocabulary during TF-IDF calculation. The fifth contribution of the work is the analysis of the implications of the two pre-processing approaches computationally through the comparison of the performance in preprocessing and training the models.
+
+Last but not least, we analyze the effect of removing the operand on the performance of our approach towards Etherlock vulnerability issues
+
+Organization of the Paper
+
+This paper is structured in the following way. Background and related works are introduced in Section II, which solely depends on the base paper given. Research questions and design of the experiment are explained in Section III. The methodology is detailed in Section IV and includes dataset generation, opcode processing, feature extraction, and classification. Experimental results are shown in Section V. The effects of removing opcode operands are described in Section VI. Limitations and threats to validity are presented in Section VII. Future research directions are stated in Section VIII.
+
+BACKGROUND AND RELATED WORK
+
+Smart-Contract Vulnerability Detection
+
+Detection of vulnerabilities in smart-contracts is an important field of research in terms of security of the blockchains since such vulnerabilities may lead to improper contract execution and security incidents. In the base paper, machine-learning approaches for smart-contract vulnerability detection in the Solidity language are considered, and multiple types of vulnerabilities are analysed instead of considering only one vulnerability for vulnerability detection.
+
+Static analysis, symbolic execution, and fuzzing are examples of traditional methods used to analyse smart contracts' security. In the base paper, different approaches like that are mentioned and the utilization of existing tools for analysis of smart contracts in terms of their vulnerabilities is described. These approaches work with the deployed representation of smart contracts, and the approaches themselves are characterized differently in terms of computational and detection properties.
+
+Machine-learning approaches offer another way of smart-contract vulnerability detection. Machine learning, deep learning, graph neural networks, and hybrid approaches for detecting vulnerabilities in Solidity smart contracts are analysed in the base paper.
+
+EVM Bytecode and Opcode Representation
+
+The deployment of smart contracts on the Ethereum platform results in the creation of EVM bytecode. Opcode-level encoding gives a more low-level perspective on the instructions used by the EVM. According to the base paper, one of the categories of smart-contract vulnerability identification includes opcode and pattern analysis and is useful in situations when source code is not available.
+
+An opcode-based analysis can consider individual instructions or instruction sequences. According to the base paper, opcode pattern analysis and opcode sequence learning have been considered for vulnerability detection. This method attempts to detect patterns in the compiled form of smart contract code that are vulnerable.
+
+Opcode Preprocessing
+
+Preprocessing influences how the raw bytecode is processed into the form that can be fed into machine learning techniques. An illustration is presented in the base paper, where the transition from bytecode to opcode and stripped-hexcode is shown. During this procedure, a PUSH instruction can be preserved without the corresponding hexadecimal operand.
+
+Bytecode
+
+Opcode
+
+Stripped Hexcode
+
+6080
+
+PUSH1 80
+
+60
+
+61ABCD
+
+PUSH2 0xABCD
+
+61
+
+01
+
+ADD
+
+01
+
+56
+
+JUMP
+
+56
+
+TABLE I. EXAMPLE OF BYTECODE-TO-OPCODE-TO-STRIPPED-HEXCODE CONVERSION
+
+Such preprocessing strips off the values immediately after PUSH operations, but keeps the operation itself.
+
+It is this particular preprocessing step that is at the root of the current ablation study. This study does not consider operand removal as a given preprocessing step but rather tries to compare representations with and without the operands.
+
+Machine-Learning-Based Detection
+
+Some of the machine-learning techniques used in smart contract vulnerability detection are support vector machines, decision trees, random forests, convolutional neural networks, recurrent neural networks, graph neural networks, and multimodal techniques.
+
+In relation to the reviewed works, there has been the application of machine learning techniques on datasets with vulnerabilities belonging to various categories. Stacked ensemble techniques have also been applied in order to detect vulnerabilities that fall into four categories.
+
+The variety in the type of vulnerability is important to the present study since a variation in preprocessing technique will affect different types of vulnerability differently.
+
+Research Gap
+
+The base paper showcases how opcode-specific preprocessing and machine learning algorithms are applied for detecting vulnerabilities in smart contracts. Additionally, one example is provided where the value of the operand of the PUSH opcode is removed from the bytecode representation.
+
+Nonetheless, in the base paper, removing the opcode operand is not used as an ablation variable and there is no quantitative comparison between the representations under controlled experimental setup conditions. In the current study, the experimental question is addressed by comparing two preprocessing methods using the same setup.
+
+Thus, the aim of this work is not to come up with yet another vulnerability detector, but to evaluate the impact that the preprocessing choice makes on the performance, the number of features, and computing efficiency.
+
+Approach
+
+Representation / Technique
+
+Relevance to This Study
+
+Machine-learning vulnerability detection
+
+ML models applied to smart-contract data
+
+Provides the overall detection context
+
+Opcode pattern analysis
+
+EVM opcode/bytecode patterns
+
+Establishes opcode-level analysis
+
+Opcode sequence learning
+
+Sequences of EVM instructions
+
+Motivates opcode-based representation
+
+Stripped opcode representation
+
+PUSH opcode retained, operand values removed
+
+Direct basis for the ablation variable
+
+Deep learning
+
+CNN, LSTM and related approaches
+
+Shows alternative learning approaches
+
+Graph-based detection
+
+Graph neural networks
+
+Provides another representation approach
+
+Hybrid/multimodal detection
+
+Source code, opcode and CFG information
+
+Demonstrates representation combinations
+
+TABLE II. SUMMARY OF RELATED APPROACHES TO SMART-CONTRACT VULNERABILITY DETECTION AND THEIR RELEVANCE TO THIS STUDY
+
+The above background information has been drawn from the uploaded base paper only. No other outside sources have been used in this background.
+
+RESEARCH QUESTIONS AND EXPERIMENTAL OBJECTIVES
+
+Research Questions
+
+Using the preprocessing technique from the base paper, this work examines the influence of the elimination of operand values of EVM PUSH operations. This study aims to answer the following research questions:
+
+RQ1: What is the impact of eliminating opcode operand values on smart-contracts vulnerability detection effectiveness?
+
+RQ2: Is there a variance in the impact of opcode operands elimination depending on vulnerability type?
+
+RQ3: What is the impact of opcode operand elimination on the feature dimensionality of the obtained representation?
+
+RQ4: What is the impact of opcode operand elimination on computational performance of vulnerability detection pipeline?
+
+Experimental Objective
+
+The primary goal of the experiment is to analyze how the preprocessing of the opcode operands influences the response from smart contract detection while keeping all the other variables constant. In this case, the experiment introduces two bytecode configurations that are distinguished from each other by the operating procedure of operand values attached to each PUSH command.
+
+Configuration 1: With operand values. The opcode of PUSH and the operands attached are processed the same way. Thus, there is no change in how PUSH1-PUSH32 opcode commands look.
+
+Configuration 2. Without operand values. The opcode is kept, while all the operands connected to the PUSH opcode are excluded. Thus, the bytecode of PUSH1 80, presented as 60 80, loses its last number after the operand extraction process.
+
+The modification follows the scheme of the above-mentioned process. Since the same feature extraction, data arrangement, classifier, procedure of evaluation, and evaluation are applied in each case, this means that all other factors affect the experiment so that it concentrates on the importance of stripping the operand values from the bytecode.
+
+Controlled Experimental Conditions
+
+In order to measure the impact of the preprocessing step as opposed to other differences between the two pipelines, the two pipelines are assessed using identical experiments.
+
+Parameter
+
+Experimental Setting
+
+Vulnerability datasets
+
+Etherlock, Block Dependency, Integer Underflow/Overflow, Reentrancy
+
+Preprocessing variable
+
+Opcode operand values
+
+Train-test split
+
+80:20
+
+Random seed
+
+42
+
+Feature extraction
+
+TF-IDF
+
+Analyzer
+
+Word
+
+N-gram range
+
+(1, 2)
+
+Minimum document frequency
+
+1
+
+Classifier
+
+Decision Tree
+
+Criterion
+
+Gini
+
+Maximum depth
+
+None
+
+Minimum samples split
+
+2
+
+Minimum samples leaf
+
+1
+
+Evaluation
+
+Accuracy, Precision, Recall, F1-score, ROC-AUC
+
+Additional analysis
+
+Confusion matrix, vocabulary size, training time
+
+TABLE III. SUMMARY OF EXPERIMENTAL SETUP AND CONFIGURATION PARAMETERS
+
+The train/test measures and labels will be the same for the two configurations of preprocessing. Thus, any differences that arise can be attributed to how the operand values were handled.
+
+Experimental Hypotheses
+
+The paper investigates the following hypotheses:
+
+H1: Opcode operand value removal impacts the ability of the vulnerability prediction model to predict.
+
+H2: The impact of opcode operand value removal varies across the types of vulnerabilities.
+
+H3: The removal of operand values decreases the number of TF-IDF features created based on bytecode representation.
+
+H4: The removal of operand values makes the model training less computationally costly.
+
+The hypotheses are empirically validated using the experiment results provided below.
+
+Scope of the Ablation
+
+The operation here involves operand bytes related to EVM PUSH instructions only. It is not a universal elimination of any constant values or numbers that can be encountered within the bytecode of smart contracts.
+
+This fact is essential since the goal of the current experiment is to answer a particular preprocessing question: What happens when one removes the immediate values of PUSH1–PUSH32 instructions, while the opcode instructions themselves remain unchanged?
+
+The following section will outline IV. EXPERIMENTAL METHODOLOGY that includes datasets, bytecode preprocessing algorithm, TF-IDF encoding, Decision Tree model, and evaluation steps.
+
+EXPERIMENTAL METHODOLOGY
+
+Experimental Overview
+
+The controlled ablation method is used in this study to evaluate the impact of removing the value of the opcode operand on the vulnerability detection of smart contracts based on machine learning techniques. The experimental process utilizes datasets of smart contracts with the EVM bytecode and vulnerability indicators. The raw EVM bytecode is subjected to two configurations of preprocessing. According to the first one, all the operand values associated with the PUSH instructions are retained, while the second configuration denies these values while leaving the PUSH opcodes intact.
+
+After preprocessing opcodes, the output code sequences from both configurations can be changed into the corresponding feature representations in terms of TF-IDF. After that, all feature representations are fed into the same Decision Tree classifier. The rest of experimental conditions remain the same with the only difference being the approach to the opcode operand value.
+
+The entire experimental pipeline can be represented as follows:
+
+Smart Contract Dataset → Raw EVM Bytecode → Opcode Preprocessing → TF-IDF Feature Representation → Decision Tree Classifier → Vulnerability Detection
+
+Dataset
+
+The experimental research will have four types of vulnerabilities: Etherlock, Block Dependency, Integer Underflow/Overflow, and Reentrancy. The dataset includes EVM bytecode and binary vulnerability indicators related to every category of vulnerabilities. Thus, the problem of vulnerability detection can be considered as the binary problem since every smart contract should be classified either as vulnerable or not vulnerable for every vulnerability type.
+
+The choice of these categories of vulnerabilities is based on the research of diseases that describes multiple vulnerabilities of the smart contracts from the perspective of machine learning-based detection. The original paper discusses the following types of vulnerabilities which are also considered in this study: Etherlock, Block Dependency, Integer Underflow/Overflow, and Reentrancy. The four selected types of vulnerabilities, thus, fit into the current analysis of the efficiency of the removal of opcode operand value across types of vulnerabilities..
+
+Bytecode Preprocessing
+
+The most important advance in the experimental design is based on the processing of the operand values relevant to the EVM PUSH instructions. PUSH opcodes, representing specific bytecode instructions in the Ethereum blockchain environment, have values in the 0x60 – 0x7F range, which correspond to PUSH1 – PUSH32. Each PUSHn opcode is always followed with n-bytes of the associated operand.
+
+Two variants of pre-processing are proposed. In the case of the WOV pre-processing variant, both the actual opcode and its operand bytes are included. For instance, the bytecode representing the PUSH1 80 operation will contain both PUSH and the operand and will be written as 60 80. When it comes to PUSH2 ABCD, this operation in the given variant will have the opcode of 61 and the operand 61 AB CD.
+
+In the case of the WOW pre-processing mode, the opcode is preserved while the associated operand bytes are ignored, and consequently, the PUSH1 80 bytecode will look as 60. PUSH2 ABCD will be written as 61.
+
+Therefore, the only difference between the two modes consists in the way the operand values corresponding to PUSH operations are treated. All other auxiliary steps of the study will perform the same in both variants. The operand-removal
+
+Example of the Ablation
+
+Here is the simplified bytecode example:
+
+60 80 61 AB CD 52
+
+Both preprocessing methods result in the following:
+
+With Opcode Values
+
+60 80 61 AB CD 52
+
+Without Opcode Values
+
+60 61 52
+
+It is essential to note that in both cases, the opcodes are kept intact. The bytes that appear after the PUSH instructions are only stripped away.
+
+Feature Extraction Using TF-IDF
+
+After processing the opcode, the next step involves converting the generated opcode sequences into numerical feature representations through the use of the Term Frequency–Inverse Document Frequency (TF-IDF) method. It is crucial to ensure that the same TF-IDF configuration is utilized in both processing methods so that the diverse feature representations arise from the treatment of the opcode operand values rather than from the differences in the feature extraction procedure.
+
+The configuration of TF-IDF used in this experiment includes a word analyzer, the token pattern, and unigram – bigram range of (1, 2). A threshold for document frequency of at least 1 is set as well. These parameters were kept the same in both processing methods used in the experiment.
+
+Along with the TF-IDF representations that were generated, the size of the vocabulary produced in each of the methods was noted. Vocabulary size gives an idea about the dimensionality of the feature space and helps in assessing the effect of the removal of operand values on the dimensionality of the features represented. It is expected that the removal of operand values will eliminate additional unique tokens from the representation leading to a decrease in the size of vocabulary.
+
+Classification Model
+
+A Decision Tree Classifier is used for both configurations.The experimental parameters are:
+
+Parameter
+
+Value
+
+Classifier
+
+Decision Tree
+
+Criterion
+
+Gini
+
+Maximum depth
+
+None
+
+Random state
+
+42
+
+Minimum samples split
+
+2
+
+Minimum samples leaf
+
+1
+
+TABLE IV. DECISION TREE CLASSIFIER HYPERPARAMETERS
+
+Classifier configuration does not change between the baseline and ablation test cases. In the base paper, Decision Tree Classification is covered as a machine learning technique for smart contract vulnerability detection.
+
+Train-Test Split
+
+In the case of the vulnerability datasets, the samples are split into respective training and testing subsets in accordance with the 80-to-20 ratio. Furthermore, the same random seed of 42 is used for achieving the data partitioning reproducibility. It is notable that the same train–test partition will be applied in both of the preprocessing cases.
+
+Thus, both configurations under consideration are trained and tested on the same smart contracts that help to eliminate variability related to the distribution of the samples, So the experiment will strictly follow the consistent experimental conditions.
+
+Evaluation Metrics
+
+The performance of the two setups is compared based on the following performance criteria:
+
+Accuracy: This evaluates the proportion of correctly classified contracts.
+
+Precision: This evaluates the proportion of contracts flagged as vulnerable that are indeed vulnerable.
+
+Recall: This evaluates the proportion of vulnerable contracts detected.
+
+F1 score: This gives a combined performance evaluation of precision and recall.
+
+ROC-AUC: This measures the discriminative power of the classifier across different classification thresholds.
+
+In addition to the above criteria, confusion matrices are computed for each dataset and setup.
+
+Computational Evaluation
+
+The assessment of the two preprocessing methods takes into account not only their ability to predict but also the computational cost of performing the respective actions. The computational component of the operand-value removal is determined through recording the TF-IDF vocabulary size, preprocessing time, model training time, and inference time for both configurations.
+
+The vocabulary size indicates how the dimensionality of features changes in the given preprocessing configuration, while the preprocessing, training, and inference times show how much computation each action at the various steps of the process  costs. Thus, it is possible to assess the efficiency of removing operands' values in order to check whether it leads to more efficient computation.
+
+This analysis adds another dimension to the comparison of preprocessing methods by examining both aspects of the investigated configuration.
+
+Experimental Comparison
+
+FIG. 1. EXPERIMENTAL WORKFLOW OF THE PROPOSED ABLATION STUDY, FROM RAW EVM BYTECODE PREPROCESSING THROUGH CLASSIFICATION TO PERFORMANCE AND COMPUTATIONAL EVALUATION.
+
+This experimental setup allows the experiment to investigate if the information about the operands, stripped off through preprocessing, is essential for vulnerability detection, as well as the impact on feature dimensionality and computational overhead due to the same.
+
+EXPERIMENTAL RESULTS
+
+The test results are compared between With Opcode Values Baseline and Without Opcode Values ablation, using the same set of tests. These tests are carried out on Etherlock, Block Dependency, Integer Underflow/Overflow, and Reentrancy.
+
+Overall Performance Results
+
+Dataset
+
+Configuration
+
+Accuracy
+
+Precision
+
+Recall
+
+F1-Score
+
+ROC-AUC
+
+Vocabulary Size
+
+Training Time
+
+Etherlock
+
+With Values
+
+96.89%
+
+72.58%
+
+67.16%
+
+69.77%
+
+0.8287
+
+65,372
+
+34.24 s
+
+Etherlock
+
+Without Values
+
+96.65%
+
+71.93%
+
+61.19%
+
+66.13%
+
+0.7992
+
+40,774
+
+17.97 s
+
+Block Dependency
+
+With Values
+
+95.41%
+
+0.00%
+
+0.00%
+
+0.00%
+
+0.4913
+
+65,273
+
+33.60 s
+
+Block Dependency
+
+Without Values
+
+95.51%
+
+0.00%
+
+0.00%
+
+0.00%
+
+0.4918
+
+38,259
+
+16.67 s
+
+Integer Underflow/Overflow
+
+With Values
+
+81.99%
+
+47.77%
+
+36.95%
+
+41.67%
+
+0.6422
+
+65,514
+
+32.65 s
+
+Integer Underflow/Overflow
+
+Without Values
+
+83.10%
+
+51.92%
+
+39.90%
+
+45.13%
+
+0.6606
+
+41,158
+
+13.92 s
+
+Reentrancy
+
+With Values
+
+90.94%
+
+34.62%
+
+38.57%
+
+36.49%
+
+0.6665
+
+65,380
+
+50.34 s
+
+Reentrancy
+
+Without Values
+
+92.57%
+
+43.14%
+
+31.43%
+
+36.36%
+
+0.6421
+
+39,337
+
+17.75 s
+
+TABLE V. OVERALL PERFORMANCE COMPARISON BETWEEN WITH-OPERAND-VALUES AND WITHOUT-OPERAND-VALUES CONFIGURATIONS ACROSS ALL VULNERABILITY DATASETS
+
+The findings show that deleting operand values do not cause consistent changes in the predictive accuracy measures.
+
+In the case of Etherlock, deleting operand values causes a decrease of 0.24% in accuracy and 3.64% in F1-score. The biggest decrease is seen in recall, which decreases by 5.97%.
+
+When it comes to Block Dependency, the predictive measures remain unchanged. There is a slight improvement in accuracy, going up from 95.41% to 95.51%. However, precision, recall, and F1-score remain at 0%.
+
+In the case of Integer Underflow/Overflow, the ablative analysis brings about improvements in the predictive accuracy measures. Accuracy improves by 1.11% and F1-score improves by 3.46%.
+
+For Reentrancy, there is an increase in accuracy of 1.64% and an increase in precision of 8.52%. However, there is a decrease in recall of 7.14%.
+
+Fig. 2 contrasts accuracy with F1-score for both configurations. Accuracy stays above 80% on every dataset, whereas F1-score ranges from 0% to about 70%, so accuracy alone overstates detection quality, most clearly for Block Dependency.
+
+FIG. 2. ACCURACY AND F1-SCORE OF THE WITH-VALUES AND WITHOUT-VALUES CONFIGURATIONS ACROSS THE FOUR VULNERABILITY DATASETS.
+
+Change in Predictive Performance
+
+4445438785Change =  Without Opcode Values − With Opcode Values0Change =  Without Opcode Values − With Opcode ValuesThe difference between the two configurations is calculated as:
+
+Change =  Without Opcode Values − With Opcode Values
+
+Change =  Without Opcode Values − With Opcode Values
+
+Change =  Without Opcode Values − With Opcode Values
+
+Change =  Without Opcode Values − With Opcode Values
+
+Dataset
+
+Δ Accuracy
+
+Δ Precision
+
+Δ Recall
+
+Δ F1-Score
+
+Δ ROC-AUC
+
+Etherlock
+
+−0.24 pp
+
+−0.65 pp
+
+−5.97 pp
+
+−3.64 pp
+
+−0.0294
+
+Block Dependency
+
++0.10 pp
+
+0.00 pp
+
+0.00 pp
+
+0.00 pp
+
++0.0005
+
+Integer Underflow/Overflow
+
++1.11 pp
+
++4.15 pp
+
++2.96 pp
+
++3.46 pp
+
++0.0184
+
+Reentrancy
+
++1.64 pp
+
++8.52 pp
+
+−7.14 pp
+
+−0.12 pp
+
+−0.0243
+
+TABLE VI. CHANGE IN PERFORMANCE METRICS AFTER REMOVING OPCODE OPERAND VALUES (WITHOUT VALUES − WITH VALUES)
+
+This clearly shows that removing operand values does not yield the same effects on performance in all vulnerabilities. For Etherlock, the reduction in accuracy is 0.24 percentage points, and F1-score is reduced by 3.64 percentage points. Recall has the largest drop with 5.97 percentage points. In the case of Block Dependency, there is no difference in the results. Accuracy is improved by 0.10 percentage points, and precision, recall, and F1-score stay the same, that is, 0%.
+
+In Integer Underflow/Overflow vulnerability, removing operand values yields some positive changes for the reported predictive metrics. The increase in accuracy is 1.11 percentage points, and F1-score increases by 3.46 percentage points. For Reentrancy vulnerability, accuracy increases by 1.64 percentage points, and precision is improved by 8.52 percentage points. On the other hand, the decrease in recall is 7.14 percentage points.
+
+Fig. 3 plots the change in each metric after operand removal. The gains are concentrated in Integer Underflow/Overflow, Etherlock loses recall and F1-score, and Reentrancy trades a precision gain of 8.52 pp for a recall loss of 7.14 pp.
+
+FIG. 3. CHANGE IN ACCURACY, PRECISION, RECALL AND F1-SCORE AFTER OPERAND REMOVAL (WITHOUT VALUES − WITH VALUES, IN PERCENTAGE POINTS).
+
+Feature-Dimensionality Reduction
+
+A substantial change occurs in the TF-IDF vocabulary size after removing opcode operand values.
+
+Dataset
+
+With Values
+
+Without Values
+
+Reduction
+
+Etherlock
+
+65,372
+
+40,774
+
+37.6%
+
+Block Dependency
+
+65,273
+
+38,259
+
+41.4%
+
+Integer Underflow/Overflow
+
+65,514
+
+41,158
+
+37.2%
+
+Reentrancy
+
+65,380
+
+39,337
+
+39.8%
+
+TABLE VII. TF-IDF VOCABULARY SIZE BEFORE AND AFTER REMOVAL OF OPCODE OPERAND VALUES
+
+The vocabulary is reduced by about 37.2%–41.4%. This indicates that the elimination of operands helps reduce the number of features used for training the classifier.
+
+Fig. 4 shows the vocabulary size of each dataset under both configurations. The reduction is consistent, between 37.2% and 41.4%.
+
+FIG. 4. TF-IDF VOCABULARY SIZE WITH AND WITHOUT OPERAND VALUES; PERCENTAGES GIVE THE REDUCTION.
+
+Computational Results
+
+The reduction in feature dimensionality is accompanied by lower training time.
+
+Dataset
+
+With Values
+
+Without Values
+
+Approx. Speedup
+
+Etherlock
+
+34.24 s
+
+17.97 s
+
+1.9×
+
+Block Dependency
+
+33.60 s
+
+16.67 s
+
+2.0×
+
+Integer Underflow/Overflow
+
+32.65 s
+
+13.92 s
+
+2.3×
+
+Reentrancy
+
+50.34 s
+
+17.75 s
+
+2.8×
+
+TABLE VIII. TRAINING TIME AND APPROXIMATE SPEEDUP AFTER REMOVAL OF OPCODE OPERAND VALUES
+
+The greatest saving comes from the Reentrancy dataset, which sees training time reduced from 50.34 seconds to 17.75 seconds. The findings demonstrate that dropping the values of operands can significantly decrease the computing complexity of the process.
+
+Fig. 5 compares training times. The speedup ranges from 1.9× to 2.8×, and is largest for Reentrancy.
+
+FIG. 5. TRAINING TIME WITH AND WITHOUT OPERAND VALUES; MULTIPLIERS GIVE THE APPROXIMATE SPEEDUP.
+
+Confusion-Matrix Analysis
+
+The confusion matrices provide additional information about how the predictions change after operand removal.
+
+Dataset
+
+Configuration
+
+TN
+
+FP
+
+FN
+
+TP
+
+Etherlock
+
+With Values
+
+1170
+
+17
+
+22
+
+45
+
+Etherlock
+
+Without Values
+
+1171
+
+16
+
+26
+
+41
+
+Block Dependency
+
+With Values
+
+956
+
+17
+
+29
+
+0
+
+Block Dependency
+
+Without Values
+
+957
+
+16
+
+29
+
+0
+
+Integer Underflow/Overflow
+
+With Values
+
+881
+
+82
+
+128
+
+75
+
+Integer Underflow/Overflow
+
+Without Values
+
+888
+
+75
+
+122
+
+81
+
+Reentrancy
+
+With Values
+
+916
+
+51
+
+43
+
+27
+
+Reentrancy
+
+Without Values
+
+938
+
+29
+
+48
+
+22
+
+TABLE IX. CONFUSION MATRIX VALUES FOR BOTH CONFIGURATIONS ACROSS ALL VULNERABILITY DATASETS
+
+For the Etherlock detection, operand removal brings down the number of false positives from 17 to 16, and increases the number of false negatives from 22 to 26.In case of the Integer Underflow/Overflow, false positives go down from 82 to 75, and true positives go up from 75 to 81. This relates to the noted increase in precision, recall and F1-score.
+
+As for Reentrancy, the number of false positives goes down sharply from 51 to 29, while false negatives increase from 43 to 48. Therefore, the rise in precision results in the decrease of recall. Concerning the Block Dependency, in both cases the number of true positives equals to 0 in the presented confusion matrices. That is why there is zero precision, recall and F1-score, even though the overall accuracy is high.
+
+Fig. 6 visualizes the confusion matrices of Table IX. Shading shows the share of each actual class assigned to each predicted class; the true-positive cell for Block Dependency is empty in both configurations.
+
+FIG. 6. CONFUSION MATRICES FOR BOTH CONFIGURATIONS (SHADING = ROW-NORMALIZED PROPORTION OF EACH ACTUAL CLASS).
+
+Summary of Findings
+
+The conducted experiments reveal three significant findings. The first is that omitting  the values of the operands associated with the opcode instructions leads to a considerable decline in the dimensionality of the TF-IDF feature representation. The second finding is that the setting excluding the opcode operand values is more efficient in terms of training time, which means a reduction of the computational cost. The third observation is that the impact of the removal of operand values is different for various types of vulnerabilities.
+
+In general terms, the obtained results show that the proposed method of removal of the operand values is a major preprocessing change since it allows to obtain a less complicated feature representation and reduce the computational cost. Nevertheless, the influence of such removal on the detection capability may differ for various vulnerabilities. Consequently, it is necessary to take the effect of the operand data into account when analyzing both computational properties of the representation and the vulnerability being detected.
+
+DISCUSSION
+
+Effect of Opcode Operand Removal on Predictive Performance
+
+The empirical findings suggest that elimination of operand values related to EVM PUSH instructions yields heterogeneous impact on vulnerability detection performance. Its effectiveness depends on the class of vulnerabilities being detected.
+
+For Etherlock, elimination of operand values led to minor reduction in accuracy to 96.65% from 96.89% and in F1-score to 66.13% from 69.77%. Recall reduced from 67.16% to 61.19%, while ROC-AUC from 0.8287 to 0.7992. Thus, it can be concluded that the operand data provided discriminative information for the Etherlock dataset.
+
+For Integer Underflow/Overflow, elimination of operands was effective. Accuracy increased to 83.10% from 81.99% and F1-score to 45.13% from 41.67%. All other measures were also improved. Therefore, one can conclude that for this type of vulnerabilities the elimination of operand values led to a simpler representation of data, which improved the classification performance measures.
+
+The values for accuracy increased from 90.94% to 92.57%, whereas precision increased from 34.62% to 43.14%. On the other hand, recall decreased from 38.57% to 31.43%, yielding virtually identical F1-scores (values: 36.49%; without values: 36.36%). In such a manner, an increase in accuracy is not considered an improvement in vulnerability-class detection.
+
+In turn, the values for Block Dependency led to zero percent precision, recall, and F1-score regardless of whether or not the values were used. The values for accuracy were approximately 95%, but ROC-AUC scores were virtually at chance level (0.4913; 0.4918). Hence, the high accuracy for this dataset cannot be viewed as proper detection of the positive vulnerability class.
+
+Thus, the findings show that the contribution of opcode operand values depends on the vulnerability rather than has a universal value.
+
+Effect Across Different Vulnerability Types
+
+The differences between vulnerability categories are particularly important for interpreting the ablation study.
+
+Vulnerability
+
+F1 With Values
+
+F1 Without Values
+
+Change
+
+Etherlock
+
+69.77%
+
+66.13%
+
+−3.64 pp
+
+Block Dependency
+
+0.00%
+
+0.00%
+
+0.00 pp
+
+Integer Underflow/Overflow
+
+41.67%
+
+45.13%
+
++3.46 pp
+
+Reentrancy
+
+36.49%
+
+36.36%
+
+−0.12 pp
+
+TABLE X. SUMMARY OF F1-SCORE CHANGE ACROSS VULNERABILITY TYPES AFTER OPERAND REMOVAL
+
+The maximum increase in positive F1 score was seen in Integer Underflow/Overflow, while the maximum decrease in F1 score was seen in Etherlock. The Reentrancy class exhibited little to no change in F1 score, even when the precision and recall changed.
+
+It shows that information provided by PUSH operands is not of equal significance to all types of vulnerabilities. Vulnerability patterns can be captured through opcode-based information alone, while some other patterns need PUSH operand information.
+
+The base paper explains about the importance of opcode and pattern-based analysis as a significant direction in analyzing smart-contract bytecode and also discusses opcode sequence-based vulnerability detection approaches. The current research adds another dimension to this discussion through empirical isolation of a particular preprocessing choice.
+
+Effect on Feature Dimensionality
+
+A very clear outcome of the task performed is the lowering of size of vocabulary according to TF-IDF. When excluding operand value usage in our four datasets, we achieve a remarkable improvement of vocabulary dimensions, which shrink from 37% to 41%. The outcome means that operand values play a significant role in the vocabulary of the system, and their removal enables us to simplify its structure and make it more compact.
+
+Dataset
+
+Vocabulary With Values
+
+Vocabulary Without Values
+
+Reduction
+
+Etherlock
+
+65,372
+
+40,774
+
+37.6%
+
+Block Dependency
+
+65,273
+
+38,259
+
+41.4%
+
+Integer Underflow/Overflow
+
+65,514
+
+41,158
+
+37.2%
+
+Reentrancy
+
+65,380
+
+39,337
+
+39.8%
+
+TABLE XI. VOCABULARY-SIZE REDUCTION ACROSS VULNERABILITY DATASETS AFTER OPCODE OPERAND REMOVAL
+
+This shows that the values of operands play a major role in determining the number of different TF-IDF features. Upon removal of those values, the representation size gets reduced significantly without removing the opcode instructions.
+
+It is significant to note that this happens since the preprocessing step does not strip away the PUSH opcode but strips away the operand bytes corresponding to the opcode. The base paper also depicts this difference in their example of transforming bytecode to opcodes.
+
+Conclusively, this ablation test changes the level of specificity of the representation.
+
+Effect on Computational Efficiency
+
+The reduction in vocabulary size is accompanied by a substantial reduction in training time.
+
+Dataset
+
+Training Time With Values
+
+Training Time Without Values
+
+Approx. Speedup
+
+Etherlock
+
+34.24 s
+
+17.97 s
+
+1.9×
+
+Block Dependency
+
+33.60 s
+
+16.67 s
+
+2.0×
+
+Integer Underflow/Overflow
+
+32.65 s
+
+13.92 s
+
+2.3×
+
+Reentrancy
+
+50.34 s
+
+17.75 s
+
+2.8×
+
+TABLE XII. TRAINING-TIME COMPARISON AND SPEEDUP ACROSS VULNERABILITY DATASETS AFTER OPCODE OPERAND REMOVAL
+
+The largest training time reduction was achieved for the Reentrancy dataset. Training time has been reduced from 50.34 to 17.75 seconds.
+
+The provided result serves as a direct evidence of the possibility to decrease the computational cost of the feature representation through elimination of the operand values. The provided finding becomes particularly important as both configurations share the same classifier setup, train-test split, TF-IDF setup, and random seed. Therefore, the computational difference observed between these two cases comes from the difference in the preprocessing and corresponding feature representation.
+
+Interpretation of Operand Information
+
+From the experimental results, we can say that the value of opcode operand contains some information that can sometime contribute to classification, but maintaining the operands increases the complexity of the representation.
+
+For Etherlock, excluding operands lowered both the F1-score and recall which indicates that information provided by operands is helpful for the classification in that dataset. However, for the Integer Underflow/Overflow class, excluding the operand led to higher F1-score. For Reentrancy, the result was mixed with high precision but low recall.
+
+Such results cannot be considered as a proof that the operand values are helpful or useless in general. Rather, their usefulness seems to be related to the specific type of vulnerability and the specific dataset used in the experiments.
+
+In the base paper, the representation that utilizes opcode sequences is discussed among other types of opcode-based representations used in the analysis of smart-contract vulnerabilities.
+
+It is important to note that the current experiment does not prove in any way that the model overfits to specific opcode operands. To prove that the model overfits to specific opcode operands, additional work will have to be done, including the comparison of training and testing performance, or evaluation on new contract or project data. Hence, the current results can only be considered as showing performance and computational differences.
+
+Answers to the Research Questions
+
+RQ1: What is the quantifiable impact of removal of opcode operand values on vulnerability detection performance?
+
+Impact differs depending on the type of vulnerability. In F1-score, it decreased by 3.64 percentage points for Etherlock, was unchanged for Block Dependency, increased by 3.46 percentage points for Integer Underflow/Overflow, and decreased by 0.12 percentage points for Reentrancy. Thus, removing operand values does not have a universal impact on predictive performance.
+
+RQ2: Is the impact different depending on the type of vulnerability?
+
+Yes. The experimental results demonstrate differences in all four categories of vulnerabilities. Integer Underflow/Overflow had a positive impact in terms of measured F1-score, Etherlock had a negative impact, Reentrancy had virtually no change in F1-score, and Block Dependency had F1-score = 0 in both settings.
+
+RQ3: What is the impact of operand removal on feature dimensionality and computational performance?
+
+Operand removal significantly decreases feature dimensionality. Vocabulary decreased by about 37–41%, and training speed increased by about 1.9×–2.8× across four datasets.
+
+RQ4: Is operand removal a way to obtain a simpler representation without significant degradation of the detection performance?
+
+It is possible to see from the findings that it can give a significantly smaller and faster output representation, although it will depend on the vulnerability types used. The performance was either unchanged or better, except for Etherlock which had a lower F1-score and recall. In this case, it means that there is sufficient evidence to use operand removal as a computational simplification but not as a neutral one.
+
+Overall Discussion
+
+The ablation study clearly indicates the trade-off among representation complexity, computational complexity, and performance. Keeping opcode operands leads to an increase in TF-IDF features, whereas discarding opcode operands decreases the vocabulary by about 37-41% and training time considerably.
+
+On the other hand, the performance study shows that the reduced representation does not perform consistently across the vulnerability classes. Therefore, the results indicate that different types of preprocessing of opcode operands can be used as experimental design choices and none of them can be considered uniformly optimal.
+
+This observation aligns well with the general motivation for studying opcode-level representations for detecting vulnerabilities in smart-contracts described in the base paper. This particular empirical comparison is based on this particular ablation study.
+
+The following section should consider Threats to Validity and Limitations, including data set properties, Decision Tree classifier, 80:20 ratio, TF-IDF representation, and the lack of measurement of generalization/overfitting.
+
+THREATS TO VALIDITY AND LIMITATION
+
+Dataset-Related Limitations
+
+This experiment assesses four different vulnerability categories, including Etherlock, Block Dependency, Integer Underflow/Overflow, and Reentrancy. Thus, the results cannot be generalized directly for any type of vulnerability within the smart contract.
+
+Moreover, experimental results demonstrate significant differences in the classification process for different data sets. The specific example is the Block Dependency experiment, which shows zero precision, recall, and F1-score metrics, while its accuracy is higher than 95%. This means that accuracy itself cannot characterize the classification process properly.
+
+Accordingly, the results should be considered as the results of analysis only of particular datasets and vulnerability types.
+
+Class-Imbalance and Metric Interpretation
+
+The confusion matrices reveal that the dataset consists of significantly disparate counts of positive and negative samples. As an instance, the Block Dependency setting using opcode values generated:
+
+True Negatives = 956
+
+False Positives = 17
+
+False Negatives = 29
+
+True Positives = 0
+
+This lack of true positives leads to a zero value for the precision, recall, and F1-score. This is an indication of the need for several performance metrics in the evaluation of vulnerabilities.
+
+Therefore, this research uses accuracy, precision, recall, F1-score, ROC-AUC, and confusion matrices instead of using just the accuracy metric.
+
+Classifier Limitation
+
+The experiment applies only one classification algorithm – Decision Tree with the Gini criteria. The configuration of the classifier remains constant for both preprocessing settings to ensure that the ablation isolates the impact of operand preprocessing.
+
+At the same time, such an approach significantly limits the generalizability of the results obtained. The impacts could vary for different machine-learning algorithms. Therefore, the present experiment proves the impact of operand preprocessing with respect to the defined Decision Tree and TF-IDF settings, not all vulnerability detection models.
+
+As it is evident from the base paper, a number of machine-learning and deep-learning algorithms for smart contract vulnerability detection exist.
+
+Feature-Representation Limitation
+
+This particular experiment relies on TF-IDF with word-level tokenization and unigram/bigram features. This is why the vocabulary reduction and efficiency increase observed are relevant to the particular setting of the experiment in question.
+
+Omitting values of PUSH operands leads to the decrease in the number of tokens available for TF-IDF. A different representation could yield a different result.
+
+That is why conclusions regarding the dimensionality of the feature space can be considered conclusions regarding TF-IDF representation.
+
+Train-Test Split Limitation
+
+In both setups, the same 80:20 train/test split with seed 42 is used. This is an essential part of an ablation study since it guarantees that the two setups will be compared on the same data.
+
+At the same time, the usage of one train/test split doesn’t indicate anything about the stability of the findings under different splits. In this sense, the stated performance differences can’t be viewed as indicators of the variance of repeated sampling.
+
+It would be reasonable to conduct further research with a repeated splitting or cross-validation setup.
+
+Computational Measurement Limitation
+
+Training time is recorded for the experimental configurations, and the results show substantial reductions after operand removal. However, computational time can depend on the execution environment and implementation details.
+
+Therefore, the reported values—such as the 1.9× to 2.8× training-time improvements—should be interpreted as measurements from the experimental environment rather than universal execution-time guarantees.
+
+The more robust observation is the consistent reduction in vocabulary size across all four datasets.
+
+Scope of Opcode Operand Removal
+
+Ablation, on the other hand, eliminates operand bytes of EVM PUSH1-PUSH32 opcodes but retains the respective opcode instruction. It is therefore not the elimination of any possible constant/sematic value in the smart contract bytecode.
+
+Base paper gives an example of how this representation transformation is done, where a PUSH instruction remains but its respective operand hex value is removed.
+
+It follows that the conclusions are based on the specific preprocessing process used in the study.
+
+Generalization and Overfitting
+
+The experiment shows the differences of both data preprocessing methods as applied to the dataset. Yet, the experiment does not suffice to conclude if one method or the other overfits to patterns related to opcodes or values of operands. To back this claim, it is worth stating that the experiment does not entail the cross-project validation or the verification of results on independent external testing datasets. Neither does it involve the training/testing learning curves analysis nor multiple cross-validation. Because of that, the results provide evidence of differences of various methods but are not reliable in proving the fact of overfitting. Further research should be conducted to investigate how methods generalize and whether they produce results specific to the chosen dataset.
+
+The idea of reproducibility is crucial for establishing the credibility of the experimental findings. In this study, the same datasets, split of training and testing samples, random seed, TF-IDF parameters, Decision Tree settings, and assessment criteria were used for both preprocessing techniques so that all essential variables have remained constant and the observed effects can be attributed primarily to the preprocessing methods.
+
+Nonetheless, reproducibility is determined not only by the experimental conditions. The outcome also depends on the exact versions of datasets and software libraries, implementation procedure, computing environment, and hardware configuration. Thus, in order to ensure the repeatability of the experiment, all of the above factors are to be properly documented.
+
+Summary of Threats to Validity
+
+Threat
+
+Potential Effect
+
+Mitigation in This Study
+
+Limited vulnerability categories
+
+Limits generalization
+
+Four vulnerability categories evaluated
+
+Class imbalance
+
+Accuracy may be misleading
+
+Precision, recall, F1, ROC-AUC and confusion matrices reported
+
+Single classifier
+
+Results may be model-specific
+
+Same classifier used for both configurations
+
+Single TF-IDF representation
+
+Results may be representation-specific
+
+Identical TF-IDF settings maintained
+
+Fixed 80:20 split
+
+Split-specific variation
+
+Same split and random seed used for both configurations
+
+Execution environment
+
+Training times may vary
+
+Same environment used for comparison
+
+Specific operand-removal rule
+
+Findings limited to PUSH operands
+
+Scope explicitly defined
+
+No external validation
+
+Generalization remains uncertain
+
+Identified as future work
+
+No direct overfitting analysis
+
+Cannot establish operand-related overfitting
+
+Identified as future work
+
+TABLE XIII. SUMMARY OF THREATS TO VALIDITY AND CORRESPONDING MITIGATIONS
+
+These limitations, however, do not negate the value of the controlled comparison of the two configurations. The most conclusive results of the experiment are related to the observed difference in the vocabulary size, computational complexity, and vulnerability-specific performance given the experimentally specified configuration.
+
+Future Scope
+
+Various avenues for conducting additional research in this area have been identified. To begin, it is possible to analyze the impact of changing opcodes and values on other categories of vulnerabilities not studied in this analysis. Secondly, one can consider the application of other ML and DL algorithms such as Random Forest, SVM, and neural networks to ascertain whether similar effects are evident across other models. Additional methods that can be employed for research could involve repeating training and testing procedurals, including the application of cross-validation as a way of checking efficiency of results obtained in experiments. The evaluation of data sets and contracts of various sources could substantiate the generalization of results.
+
+Moreover, one could investigate whether machine learning relies heavily on operand values since relevance of certain variables may be established based on feature importance and reaching calculated changes in operand data.
+
+With respect to meaningful number of opcodes and implementing other ways of their representing along with the factors such as computational resources, it is possible to gain more insights into the topic. In conclusion, further studies can provide for opportunity to assess opcodes in terms of vulnerability detection performance.
+
+CONCLUSION
+
+In this work, an ablation analysis of opcode operand preprocessing in EVM smart contracts was performed to detect vulnerabilities. There were two settings considered: preserving operand values and omitting them while keeping opcodes.
+
+It has been observed that the removal of operand values caused the reduction of the TF-IDF vocabulary size by about 37-41% and increased the training efficiency by about 1.9x-2.8x. However, there were mixed observations regarding the influence on the detection performance since some categories demonstrated better or similar F1-score, whereas some demonstrated worse performance.
+
+Thus, the research revealed that the removal of opcode operands allows one to have a much simpler and computationally efficient representation; however, the impact of this preprocessing stage on the detection performance varies depending on the type of vulnerability.
+
+Declarations:
+
+Funding: The authors declare that no funds, grants, or other
+
+support were received during the preparation of this
+
+manuscript.
+
+Competing interests: The authors have no relevant
+
+financial or non-financial interests to disclose.
+
+Ethics approval: Not applicable. This study did not involve
+
+human participants or animals.
+
+Consent to participate: Not applicable.
+
+Consent for publication: Not applicable.
+
+Data availability:
+
+https://www.kaggle.com/datasets/rha4365/vulnerable-solidity-smart-contracts-dataset/data
+
+Repository:
+
+https://github.com/Ronak2027/Ablation-study-on-opcode-preprocessing
+
+Author contributions: All authors contributed to the study
+
+conception and design. Material preparation, data
+
+collection, implementation and analysis were performed by
+
+all authors. The first draft of the manuscript was written by
+
+all authors, and all authors commented on previous versions
+
+of the manuscript. All authors read and approved the final
+
+manuscript.
+
+X .  References
+
+[1] R. Alnuman, T. Sajid, W. Almobaideen, and Q. Hasan, “Ensemble multi
+
+-label machine learning Solidity smart contract vulnerability detection mod
+
+el,” Cluster Computing, vol. 28, art. no. 1014, 2025.

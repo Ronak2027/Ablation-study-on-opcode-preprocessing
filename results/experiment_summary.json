@@ -1,6 +1,7 @@
 [
   {
     "dataset": "Etherlock",
+    "dataset_key": "etherlock",
     "use_opcode_values": true,
     "config_name": "With Opcode Values",
     "num_rows": 6269,
@@ -20,9 +21,12 @@
         45
       ]
     ],
-    "prep_time": 9.283920526504517,
-    "train_time": 34.2437949180603,
-    "inference_time": 4.345935344696045,
+    "prep_time": 22.264561414718628,
+    "tfidf_fit_time": 47.27801823616028,
+    "clf_fit_time": 39.76758337020874,
+    "total_train_time": 87.04560160636902,
+    "train_time": 87.04560160636902,
+    "inference_time": 11.499552488327026,
     "idx_train": [
       2880,
       952,
@@ -8811,6 +8815,7 @@
   },
   {
     "dataset": "Etherlock",
+    "dataset_key": "etherlock",
     "use_opcode_values": false,
     "config_name": "Without Opcode Values",
     "num_rows": 6269,
@@ -8830,9 +8835,12 @@
         41
       ]
     ],
-    "prep_time": 5.961317539215088,
-    "train_time": 17.972460508346558,
-    "inference_time": 2.08919620513916,
+    "prep_time": 15.459760189056396,
+    "tfidf_fit_time": 23.46598243713379,
+    "clf_fit_time": 21.94642996788025,
+    "total_train_time": 45.41241240501404,
+    "train_time": 45.41241240501404,
+    "inference_time": 5.643621921539307,
     "idx_train": [
       2880,
       952,
@@ -17621,6 +17629,7 @@
   },
   {
     "dataset": "Block Dependency",
+    "dataset_key": "block_dependancy",
     "use_opcode_values": true,
     "config_name": "With Opcode Values",
     "num_rows": 5006,
@@ -17640,9 +17649,12 @@
         0
       ]
     ],
-    "prep_time": 7.980297565460205,
-    "train_time": 33.600470542907715,
-    "inference_time": 3.632154941558838,
+    "prep_time": 16.364827394485474,
+    "tfidf_fit_time": 38.34957003593445,
+    "clf_fit_time": 44.90511345863342,
+    "total_train_time": 83.25468349456787,
+    "train_time": 83.25468349456787,
+    "inference_time": 9.765087842941284,
     "idx_train": [
       831,
       239,
@@ -24664,6 +24676,7 @@
   },
   {
     "dataset": "Block Dependency",
+    "dataset_key": "block_dependancy",
     "use_opcode_values": false,
     "config_name": "Without Opcode Values",
     "num_rows": 5006,
@@ -24683,9 +24696,12 @@
         0
       ]
     ],
-    "prep_time": 4.606132984161377,
-    "train_time": 16.670901775360107,
-    "inference_time": 1.4703140258789062,
+    "prep_time": 11.71933650970459,
+    "tfidf_fit_time": 16.917707204818726,
+    "clf_fit_time": 23.992846250534058,
+    "total_train_time": 40.91055345535278,
+    "train_time": 40.91055345535278,
+    "inference_time": 4.534595727920532,
     "idx_train": [
       831,
       239,
@@ -31707,6 +31723,7 @@
   },
   {
     "dataset": "Integer Underflow / Overflow",
+    "dataset_key": "integer",
     "use_opcode_values": true,
     "config_name": "With Opcode Values",
     "num_rows": 5829,
@@ -31726,9 +31743,12 @@
         75
       ]
     ],
-    "prep_time": 8.920322895050049,
-    "train_time": 32.65132141113281,
-    "inference_time": 4.390607833862305,
+    "prep_time": 22.146730422973633,
+    "tfidf_fit_time": 49.38103914260864,
+    "clf_fit_time": 34.44899320602417,
+    "total_train_time": 83.83003234863281,
+    "train_time": 83.83003234863281,
+    "inference_time": 3.8038747310638428,
     "idx_train": [
       4211,
       5021,
@@ -39901,6 +39921,7 @@
   },
   {
     "dataset": "Integer Underflow / Overflow",
+    "dataset_key": "integer",
     "use_opcode_values": false,
     "config_name": "Without Opcode Values",
     "num_rows": 5829,
@@ -39920,9 +39941,12 @@
         81
       ]
     ],
-    "prep_time": 5.420069217681885,
-    "train_time": 13.91835618019104,
-    "inference_time": 2.271955966949463,
+    "prep_time": 13.689404249191284,
+    "tfidf_fit_time": 17.842365741729736,
+    "clf_fit_time": 13.748022079467773,
+    "total_train_time": 31.59038782119751,
+    "train_time": 31.59038782119751,
+    "inference_time": 4.942460536956787,
     "idx_train": [
       4211,
       5021,
@@ -48095,6 +48119,7 @@
   },
   {
     "dataset": "Reentrancy",
+    "dataset_key": "reentrancy",
     "use_opcode_values": true,
     "config_name": "With Opcode Values",
     "num_rows": 5185,
@@ -48114,9 +48139,12 @@
         27
       ]
     ],
-    "prep_time": 9.768598079681396,
-    "train_time": 50.34466791152954,
-    "inference_time": 4.145028114318848,
+    "prep_time": 20.46740961074829,
+    "tfidf_fit_time": 43.48317909240723,
+    "clf_fit_time": 71.25764989852905,
+    "total_train_time": 114.74082899093628,
+    "train_time": 114.74082899093628,
+    "inference_time": 12.42475152015686,
     "idx_train": [
       4731,
       1129,
@@ -55387,6 +55415,7 @@
   },
   {
     "dataset": "Reentrancy",
+    "dataset_key": "reentrancy",
     "use_opcode_values": false,
     "config_name": "Without Opcode Values",
     "num_rows": 5185,
@@ -55406,9 +55435,12 @@
         22
       ]
     ],
-    "prep_time": 5.71876072883606,
-    "train_time": 17.748468160629272,
-    "inference_time": 1.680734634399414,
+    "prep_time": 12.810072183609009,
+    "tfidf_fit_time": 18.77182149887085,
+    "clf_fit_time": 23.10528874397278,
+    "total_train_time": 41.87711024284363,
+    "train_time": 41.87711024284363,
+    "inference_time": 5.280591726303101,
     "idx_train": [
       4731,
       1129,

@@ -1,90 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <title>Results Table</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f9f9f9;
-            padding: 2rem;
-            max-width: 1000px;
-            margin: auto;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Batch Vulnerability Results | Ablation Study</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: #111827;
+      --border-color: #1f293d;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --radius-md: 12px;
+    }
 
-        h2 {
-            text-align: center;
-            color: #add9e6;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-top: 2rem;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      padding: 2.5rem 1.5rem;
+      max-width: 1200px;
+      margin: auto;
+    }
 
-        th,
-        td {
-            padding: 1rem;
-            text-align: center;
-        }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
 
-        th {
-            background-color: #add9e6;
-            font-weight: bold;
-            color: #000;
-        }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+    }
 
-        td {
-            background-color: #fff;
-        }
+    .btn-back {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: white;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
 
-        tr:nth-child(even) td {
-            background-color: #f2f2f2;
-        }
+    .btn-back:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
 
-        tr:hover td {
-            background-color: #e7f6fa;
-        }
-    </style>
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      padding: 1rem 1.2rem;
+      text-align: center;
+    }
+
+    th {
+      background-color: #1e293b;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+    }
+
+    tr:nth-child(even) td {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 9999px;
+    }
+
+    .badge-vuln { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-safe { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-reduction { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+  </style>
 </head>
 
 <body>
-    <h2>Smart Contract Vulnerability Report</h2>
+  <div class="header-bar">
+    <div>
+      <h2>Smart Contract Vulnerability Report</h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.3rem;">
+        Batch Detection Summary with Opcode Preprocessing Ablation Insights
+      </p>
+    </div>
+    <a href="index.html" class="btn-back">◀ Return to Analyzer</a>
+  </div>
+
+  <div class="card">
     <table>
-        <thead>
-            <tr>
-                <th>Address</th>
-                <th>Etherlock</th>
-                <th>Reentrancy</th>
-                <th>Block Dependency</th>
-                <th>Underflow / Overflow</th>
-            </tr>
-        </thead>
-        <tbody id="resultsBody"></tbody>
+      <thead>
+        <tr>
+          <th style="text-align: left;">Contract Filename</th>
+          <th>Token Reduction</th>
+          <th>Etherlock</th>
+          <th>Reentrancy</th>
+          <th>Block Dependency</th>
+          <th>Underflow / Overflow</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
     </table>
+  </div>
 
-    <script>
-        const results = JSON.parse(localStorage.getItem('results') || '[]');
-        const tbody = document.getElementById('resultsBody');
+  <script>
+    const results = JSON.parse(localStorage.getItem('results') || '[]');
+    const tbody = document.getElementById('resultsBody');
 
-        results.forEach(entry => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-        <td>${entry.filename}</td>
-        <td>${entry.vulnerabilities['Etherlock'] ? 'Yes' : 'No'}</td>
-        <td>${entry.vulnerabilities['Reentrancy'] ? 'Yes' : 'No'}</td>
-        <td>${entry.vulnerabilities['Block Dependency'] ? 'Yes' : 'No'}</td>
-        <td>${entry.vulnerabilities['Underflow / Overflow'] ? 'Yes' : 'No'}</td>
-      `;
-            tbody.appendChild(row);
-        });
-    </script>
+    if (results.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="padding: 3rem; color: var(--text-muted);">No analysis results found in local session. Return to analyzer to run a contract scan.</td></tr>`;
+    } else {
+      results.forEach(entry => {
+        const row = document.createElement('tr');
+        const vulns = entry.vulnerabilities || {};
+        const redPct = entry.comparison ? entry.comparison.token_reduction_pct : null;
+        const redHtml = redPct !== null ? `<span class="badge badge-reduction">-${redPct}%</span>` : '—';
+
+        const fmtVuln = (val) => val === 1 
+          ? `<span class="badge badge-vuln">⚠️ YES</span>` 
+          : `<span class="badge badge-safe">✅ NO</span>`;
+
+        row.innerHTML = `
+          <td style="text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;">${entry.filename}</td>
+          <td>${redHtml}</td>
+          <td>${fmtVuln(vulns['Etherlock'])}</td>
+          <td>${fmtVuln(vulns['Reentrancy'])}</td>
+          <td>${fmtVuln(vulns['Block Dependency'])}</td>
+          <td>${fmtVuln(vulns['Underflow / Overflow'])}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+  </script>
 </body>
-
 </html>

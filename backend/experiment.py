@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.tree import DecisionTreeClassifier
@@ -23,31 +24,39 @@ from sklearn.metrics import (
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from preprocessing import preprocess_bytecode
 
-RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+RESULTS_DIR = os.path.join(PROJECT_ROOT, "results")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 DATASETS = [
     {
         "name": "Etherlock",
-        "path": "dataset/etherlock.csv",
+        "key": "etherlock",
+        "path": os.path.join(PROJECT_ROOT, "dataset", "etherlock.csv"),
         "label_col": "is_vulnerable",
         "bytecode_col": "bytecode"
     },
     {
         "name": "Block Dependency",
-        "path": "dataset/block_dependancy.csv",
+        "key": "block_dependancy",
+        "path": os.path.join(PROJECT_ROOT, "dataset", "block_dependancy.csv"),
         "label_col": "is_vulnerable",
         "bytecode_col": "bytecode"
     },
     {
         "name": "Integer Underflow / Overflow",
-        "path": "dataset/integer.csv",
+        "key": "integer",
+        "path": os.path.join(PROJECT_ROOT, "dataset", "integer.csv"),
         "label_col": "is_vulnerable",
         "bytecode_col": "bytecode"
     },
     {
         "name": "Reentrancy",
-        "path": "dataset/reentrancy.csv",
+        "key": "reentrancy",
+        "path": os.path.join(PROJECT_ROOT, "dataset", "reentrancy.csv"),
         "label_col": "is_vulnerable",
         "bytecode_col": "bytecode"
     }
@@ -56,6 +65,7 @@ DATASETS = [
 def run_single_experiment(dataset_cfg, use_opcode_values: bool, seed: int = 42):
     """
     Executes a single model pipeline run on a dataset.
+    Isolates TF-IDF vectorizer fitting time from Decision Tree classifier fitting time.
     """
     df = pd.read_csv(dataset_cfg["path"])
     df = df.dropna(subset=[dataset_cfg["bytecode_col"], dataset_cfg["label_col"]])
@@ -63,7 +73,7 @@ def run_single_experiment(dataset_cfg, use_opcode_values: bool, seed: int = 42):
     raw_bytecodes = df[dataset_cfg["bytecode_col"]].values
     y = df[dataset_cfg["label_col"]].values.astype(int)
     
-    # Preprocess corpus
+    # Preprocess corpus using opcode-aware parser
     t0_prep = time.time()
     corpus = [preprocess_bytecode(b, use_opcode_values=use_opcode_values) for b in raw_bytecodes]
     prep_time = time.time() - t0_prep
@@ -79,14 +89,21 @@ def run_single_experiment(dataset_cfg, use_opcode_values: bool, seed: int = 42):
         analyzer='word', token_pattern=r'\b\w+\b', ngram_range=(1, 2), min_df=1
     )
     
-    # Training
-    t0_train = time.time()
+    # 1. Measure TF-IDF vectorizer fitting time separately
+    t0_tfidf = time.time()
     X_train = vectorizer.fit_transform(corpus_train)
+    tfidf_fit_time = time.time() - t0_tfidf
+    
+    # 2. Measure Decision Tree classifier fitting time separately
     model = DecisionTreeClassifier(
         criterion='gini', max_depth=None, random_state=seed, min_samples_split=2, min_samples_leaf=1
     )
+    t0_clf = time.time()
     model.fit(X_train, y_train)
-    train_time = time.time() - t0_train
+    clf_fit_time = time.time() - t0_clf
+    
+    # Combined pipeline training time (TF-IDF fitting + classifier fitting)
+    total_train_time = tfidf_fit_time + clf_fit_time
     
     # Inference
     t0_inf = time.time()
@@ -103,25 +120,70 @@ def run_single_experiment(dataset_cfg, use_opcode_values: bool, seed: int = 42):
     cm = confusion_matrix(y_test, y_pred)
     roc_auc = roc_auc_score(y_test, y_proba) if y_proba is not None else float('nan')
     
+    vocab_size = int(X_train.shape[1])
+    assert model.n_features_in_ == vocab_size == len(vectorizer.vocabulary_), (
+        f"Feature mismatch: model expects {model.n_features_in_}, "
+        f"matrix has {vocab_size}, vectorizer has {len(vectorizer.vocabulary_)}"
+    )
+    
     return {
         "dataset": dataset_cfg["name"],
+        "dataset_key": dataset_cfg["key"],
         "use_opcode_values": use_opcode_values,
         "config_name": "With Opcode Values" if use_opcode_values else "Without Opcode Values",
-        "num_rows": len(df),
-        "vocab_size": X_train.shape[1],
-        "accuracy": acc,
-        "precision": prec,
-        "recall": rec,
-        "f1": f1,
-        "roc_auc": roc_auc,
+        "num_rows": int(len(df)),
+        "vocab_size": vocab_size,
+        "accuracy": float(acc),
+        "precision": float(prec),
+        "recall": float(rec),
+        "f1": float(f1),
+        "roc_auc": float(roc_auc),
         "cm": cm.tolist(),
-        "prep_time": prep_time,
-        "train_time": train_time,
-        "inference_time": inference_time,
+        "prep_time": float(prep_time),
+        "tfidf_fit_time": float(tfidf_fit_time),
+        "clf_fit_time": float(clf_fit_time),
+        "total_train_time": float(total_train_time),
+        "train_time": float(total_train_time),  # legacy compatibility
+        "inference_time": float(inference_time),
         "idx_train": idx_train.tolist(),
         "idx_test": idx_test.tolist(),
         "y_test": y_test.tolist(),
-        "y_pred": y_pred.tolist()
+        "y_pred": y_pred.tolist(),
+        "_model": model,
+        "_vectorizer": vectorizer
+    }
+
+
+def save_model_artifacts(res):
+    """
+    Saves trained DecisionTreeClassifier and fitted TfidfVectorizer together.
+    Also creates legacy files for backwards compatibility.
+    """
+    key = res["dataset_key"]
+    use_opcode_values = res["use_opcode_values"]
+    cfg_tag = "with_operands" if use_opcode_values else "without_operands"
+    
+    # Save into backend/models/
+    model_path = os.path.join(MODELS_DIR, f"{key}_{cfg_tag}_model.joblib")
+    vectorizer_path = os.path.join(MODELS_DIR, f"{key}_{cfg_tag}_vectorizer.joblib")
+    
+    joblib.dump(res["_model"], model_path)
+    joblib.dump(res["_vectorizer"], vectorizer_path)
+    
+    legacy_model_path = None
+    legacy_vec_path = None
+    # For baseline default ("with_operands"), also update legacy backend/*.joblib files
+    if use_opcode_values:
+        legacy_model_path = os.path.join(BASE_DIR, f"{key}_decisiontree.joblib")
+        legacy_vec_path = os.path.join(BASE_DIR, f"{key}_vectorizer.joblib")
+        joblib.dump(res["_model"], legacy_model_path)
+        joblib.dump(res["_vectorizer"], legacy_vec_path)
+    
+    return {
+        "model_file": os.path.relpath(model_path, PROJECT_ROOT).replace("\\", "/"),
+        "vectorizer_file": os.path.relpath(vectorizer_path, PROJECT_ROOT).replace("\\", "/"),
+        "legacy_model_file": os.path.relpath(legacy_model_path, PROJECT_ROOT).replace("\\", "/") if legacy_model_path else None,
+        "legacy_vectorizer_file": os.path.relpath(legacy_vec_path, PROJECT_ROOT).replace("\\", "/") if legacy_vec_path else None,
     }
 
 
@@ -131,6 +193,7 @@ def run_full_ablation_study():
     print("=================================================================", flush=True)
     
     all_results = []
+    manifest_entries = []
     comparison_table = []
     
     for dcfg in DATASETS:
@@ -140,20 +203,59 @@ def run_full_ablation_study():
         # 1. Baseline Run (With Opcode Values)
         print("  - Running Baseline (WITH Opcode Values)...", flush=True)
         res_with = run_single_experiment(dcfg, use_opcode_values=True, seed=42)
+        paths_with = save_model_artifacts(res_with)
         
         # 2. Ablation Run (Without Opcode Values)
         print("  - Running Ablation (WITHOUT Opcode Values)...", flush=True)
         res_without = run_single_experiment(dcfg, use_opcode_values=False, seed=42)
+        paths_without = save_model_artifacts(res_without)
         
         # 3. Validity Check
         assert res_with["num_rows"] == res_without["num_rows"], "Row count mismatch!"
         assert res_with["idx_train"] == res_without["idx_train"], "Train split mismatch!"
         assert res_with["idx_test"] == res_without["idx_test"], "Test split mismatch!"
         assert res_with["y_test"] == res_without["y_test"], "Target label mismatch!"
-        print("  [OK] Phase 7 Validity Check PASSED: Identical rows, labels, seed, & splits.", flush=True)
+        print("  [OK] Validity Check PASSED: Identical rows, labels, seed, & splits.", flush=True)
+        print(f"  [OK] Baseline Vocab: {res_with['vocab_size']:,} | Ablation Vocab: {res_without['vocab_size']:,}", flush=True)
+        print(f"  [OK] TF-IDF Time: {res_with['tfidf_fit_time']:.2f}s vs {res_without['tfidf_fit_time']:.2f}s", flush=True)
+        print(f"  [OK] Classifier Time: {res_with['clf_fit_time']:.2f}s vs {res_without['clf_fit_time']:.2f}s", flush=True)
+        print(f"  [OK] Total Fit Time: {res_with['total_train_time']:.2f}s vs {res_without['total_train_time']:.2f}s", flush=True)
         
-        all_results.append(res_with)
-        all_results.append(res_without)
+        # Create manifest entries
+        for r, p in [(res_with, paths_with), (res_without, paths_without)]:
+            manifest_entries.append({
+                "dataset_name": r["dataset"],
+                "dataset_key": r["dataset_key"],
+                "configuration": "with_operands" if r["use_opcode_values"] else "without_operands",
+                "config_label": r["config_name"],
+                "model_file": p["model_file"],
+                "vectorizer_file": p["vectorizer_file"],
+                "legacy_model_file": p["legacy_model_file"],
+                "legacy_vectorizer_file": p["legacy_vectorizer_file"],
+                "vocab_size": r["vocab_size"],
+                "expected_feature_count": r["vocab_size"],
+                "metrics": {
+                    "accuracy": r["accuracy"],
+                    "precision": r["precision"],
+                    "recall": r["recall"],
+                    "f1": r["f1"],
+                    "roc_auc": r["roc_auc"],
+                    "confusion_matrix": r["cm"]
+                },
+                "timings_seconds": {
+                    "preprocessing_time": r["prep_time"],
+                    "tfidf_fit_time": r["tfidf_fit_time"],
+                    "classifier_fit_time": r["clf_fit_time"],
+                    "total_pipeline_train_time": r["total_train_time"],
+                    "inference_time": r["inference_time"]
+                }
+            })
+        
+        # Clean results for JSON summary (strip internal model objects)
+        clean_with = {k: v for k, v in res_with.items() if not k.startswith("_")}
+        clean_without = {k: v for k, v in res_without.items() if not k.startswith("_")}
+        all_results.append(clean_with)
+        all_results.append(clean_without)
         
         # Calculate metric changes
         d_acc = res_without["accuracy"] - res_with["accuracy"]
@@ -161,6 +263,11 @@ def run_full_ablation_study():
         d_rec = res_without["recall"] - res_with["recall"]
         d_f1 = res_without["f1"] - res_with["f1"]
         d_roc = res_without["roc_auc"] - res_with["roc_auc"]
+        d_vocab_pct = ((res_without["vocab_size"] - res_with["vocab_size"]) / res_with["vocab_size"]) * 100
+        
+        tfidf_speedup = res_with["tfidf_fit_time"] / res_without["tfidf_fit_time"] if res_without["tfidf_fit_time"] > 0 else 1.0
+        clf_speedup = res_with["clf_fit_time"] / res_without["clf_fit_time"] if res_without["clf_fit_time"] > 0 else 1.0
+        total_speedup = res_with["total_train_time"] / res_without["total_train_time"] if res_without["total_train_time"] > 0 else 1.0
         
         comparison_table.append({
             "Dataset": dname,
@@ -186,33 +293,69 @@ def run_full_ablation_study():
             
             "Vocab With": res_with["vocab_size"],
             "Vocab Without": res_without["vocab_size"],
-            "Train Time With (s)": res_with["train_time"],
-            "Train Time Without (s)": res_without["train_time"]
+            "Delta Vocab (%)": d_vocab_pct,
+            
+            # Isolated TF-IDF Fitting Times
+            "Baseline TF-IDF Fit Time (s)": res_with["tfidf_fit_time"],
+            "Ablation TF-IDF Fit Time (s)": res_without["tfidf_fit_time"],
+            "TF-IDF Speedup (x)": tfidf_speedup,
+            
+            # Isolated Decision Tree Classifier Fitting Times
+            "Baseline Classifier Fit Time (s)": res_with["clf_fit_time"],
+            "Ablation Classifier Fit Time (s)": res_without["clf_fit_time"],
+            "Classifier Speedup (x)": clf_speedup,
+            
+            # Combined Pipeline Fitting Times (TF-IDF + Classifier)
+            "Baseline Total Fit Time (s)": res_with["total_train_time"],
+            "Ablation Total Fit Time (s)": res_without["total_train_time"],
+            "Total Fit Speedup (x)": total_speedup,
+            
+            # Backward compatibility fields
+            "Train Time With (s)": res_with["total_train_time"],
+            "Train Time Without (s)": res_without["total_train_time"]
         })
+    
+    # Save Model Manifest to both backend/ and results/
+    manifest_data = {
+        "title": "Smart Contract Opcode Preprocessing Ablation Model Manifest",
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "scikit_learn_version": joblib.__version__,
+        "models": manifest_entries
+    }
+    
+    backend_manifest_path = os.path.join(BASE_DIR, "model_manifest.json")
+    with open(backend_manifest_path, "w") as f:
+        json.dump(manifest_data, f, indent=2)
+    print(f"\n[OK] Saved Model Manifest to: {backend_manifest_path}", flush=True)
+    
+    results_manifest_path = os.path.join(RESULTS_DIR, "model_manifest.json")
+    with open(results_manifest_path, "w") as f:
+        json.dump(manifest_data, f, indent=2)
+    print(f"[OK] Saved Model Manifest copy to: {results_manifest_path}", flush=True)
     
     # Save JSON summary
     json_path = os.path.join(RESULTS_DIR, "experiment_summary.json")
     with open(json_path, "w") as f:
         json.dump(all_results, f, indent=2)
-    print(f"\nSaved raw experimental results to: {json_path}", flush=True)
+    print(f"[OK] Saved raw experimental results to: {json_path}", flush=True)
     
     # Save CSV comparison table
     df_comp = pd.DataFrame(comparison_table)
     csv_path = os.path.join(RESULTS_DIR, "metrics_comparison.csv")
     df_comp.to_csv(csv_path, index=False)
-    print(f"Saved metrics comparison table to: {csv_path}", flush=True)
+    print(f"[OK] Saved metrics comparison table to: {csv_path}", flush=True)
     
     # Render Plots
-    generate_visualization_plots(all_results)
+    generate_visualization_plots(all_results, comparison_table)
     
     print("\n=================================================================", flush=True)
-    print("EXPERIMENT COMPLETED SUCCESSFULLY!", flush=True)
+    print("ALL EXPERIMENTS & ARTIFACTS GENERATED SUCCESSFULLY!", flush=True)
     print("=================================================================", flush=True)
     return df_comp, all_results
 
 
-def generate_visualization_plots(results):
-    print("\nGenerating Phase 6 visualization plots...", flush=True)
+def generate_visualization_plots(results, comparison_table):
+    print("\nGenerating visualization plots...", flush=True)
     sns.set_theme(style="whitegrid")
     plt.rcParams.update({'font.size': 12, 'font.family': 'sans-serif'})
     
@@ -226,7 +369,10 @@ def generate_visualization_plots(results):
             "Precision": r["precision"],
             "Recall": r["recall"],
             "F1-Score": r["f1"],
-            "ROC-AUC": r["roc_auc"]
+            "ROC-AUC": r["roc_auc"],
+            "TF-IDF Fit Time (s)": r["tfidf_fit_time"],
+            "Classifier Fit Time (s)": r["clf_fit_time"],
+            "Total Pipeline Fit Time (s)": r["total_train_time"]
         })
     df_plot = pd.DataFrame(rows)
     
@@ -253,7 +399,6 @@ def generate_visualization_plots(results):
         ax.set_xlabel("Dataset", fontsize=12, fontweight='bold')
         ax.legend(title="Preprocessing Configuration", frameon=True, facecolor='white', framealpha=0.9)
         
-        # Annotate bars with values
         for p in ax.patches:
             height = p.get_height()
             if not np.isnan(height) and height > 0:
@@ -278,22 +423,18 @@ def generate_visualization_plots(results):
     datasets = df_plot["Dataset"].unique()
     
     for i, dname in enumerate(datasets):
-        # Baseline (With)
         r_with = [r for r in results if r["dataset"] == dname and r["use_opcode_values"]][0]
         cm_with = np.array(r_with["cm"])
         
-        # Ablation (Without)
         r_without = [r for r in results if r["dataset"] == dname and not r["use_opcode_values"]][0]
         cm_without = np.array(r_without["cm"])
         
-        # Plot Baseline
         ax_w = axes[i, 0]
         sns.heatmap(cm_with, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax_w, annot_kws={"size": 13, "weight": "bold"})
         ax_w.set_title(f"{dname} - With Values", fontsize=12, fontweight='bold')
         ax_w.set_xlabel("Predicted Label", fontsize=10)
         ax_w.set_ylabel("True Label", fontsize=10)
         
-        # Plot Ablation
         ax_wo = axes[i, 1]
         sns.heatmap(cm_without, annot=True, fmt='d', cmap='Oranges', cbar=False, ax=ax_wo, annot_kws={"size": 13, "weight": "bold"})
         ax_wo.set_title(f"{dname} - Without Values", fontsize=12, fontweight='bold')
@@ -305,6 +446,51 @@ def generate_visualization_plots(results):
     plt.savefig(cm_path, dpi=300)
     plt.close()
     print(f"  [OK] Saved confusion matrices plot: {cm_path}", flush=True)
+
+    # 6. Training Time Breakdown Plot (Critical 4 Fix)
+    # Visualizes isolated TF-IDF fit time, Decision Tree fit time, and Total pipeline fit time
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+    fig.suptitle("Training Time Breakdown: TF-IDF Fitting vs Decision Tree Fitting vs Total Pipeline", fontsize=15, fontweight='bold')
+    
+    timing_titles = [
+        ("TF-IDF Vectorizer Fit Time (s)", "TF-IDF Fit Time (s)"),
+        ("Classifier (Decision Tree) Fit Time (s)", "Classifier Fit Time (s)"),
+        ("Total Pipeline Training Time (s)", "Total Pipeline Fit Time (s)")
+    ]
+    
+    for ax, (title, col) in zip(axes, timing_titles):
+        sns.barplot(
+            data=df_plot,
+            x="Dataset",
+            y=col,
+            hue="Configuration",
+            palette=colors,
+            ax=ax,
+            edgecolor="black",
+            linewidth=1.2
+        )
+        ax.set_title(title, fontsize=12, fontweight='bold', pad=10)
+        ax.set_ylabel("Time (seconds)", fontsize=11, fontweight='bold')
+        ax.set_xlabel("Dataset", fontsize=11, fontweight='bold')
+        ax.tick_params(axis='x', rotation=15)
+        ax.legend(title="Configuration", frameon=True, facecolor='white', framealpha=0.9, fontsize=9)
+        
+        for p in ax.patches:
+            height = p.get_height()
+            if not np.isnan(height) and height > 0:
+                ax.annotate(
+                    f"{height:.2f}s",
+                    (p.get_x() + p.get_width() / 2., height),
+                    ha='center', va='bottom',
+                    fontsize=9, fontweight='bold',
+                    xytext=(0, 3), textcoords='offset points'
+                )
+    
+    plt.tight_layout()
+    time_path = os.path.join(RESULTS_DIR, "training_time_breakdown.png")
+    plt.savefig(time_path, dpi=300)
+    plt.close()
+    print(f"  [OK] Saved training time breakdown plot: {time_path}", flush=True)
 
 
 if __name__ == "__main__":

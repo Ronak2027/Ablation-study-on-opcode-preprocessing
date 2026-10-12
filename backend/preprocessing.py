@@ -46,6 +46,10 @@ for op_val, name in KNOWN_OPCODES.items():
     EVM_OPCODES[op_val] = (name, 0)
 
 
+import re
+
+HEX_CLEAN_RE = re.compile(r'[^0-9a-fA-F]')
+
 def preprocess_bytecode(bytecode: str, use_opcode_values: bool = True, use_mnemonics: bool = False) -> str:
     """
     Preprocess raw EVM bytecode hex string.
@@ -58,13 +62,12 @@ def preprocess_bytecode(bytecode: str, use_opcode_values: bool = True, use_mnemo
     Returns:
         Space-separated token string for vectorization.
     """
-    import re
     bytecode_str = str(bytecode).strip()
     if bytecode_str.startswith('0x') or bytecode_str.startswith('0X'):
         bytecode_str = bytecode_str[2:]
     
     # Filter out non-hexadecimal characters (newlines, spaces, etc.)
-    bytecode_str = re.sub(r'[^0-9a-fA-F]', '', bytecode_str)
+    bytecode_str = HEX_CLEAN_RE.sub('', bytecode_str)
     
     if len(bytecode_str) % 2 != 0:
         bytecode_str = bytecode_str[:-1]

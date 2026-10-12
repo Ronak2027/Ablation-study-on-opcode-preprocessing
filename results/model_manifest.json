@@ -1,0 +1,295 @@
+{
+  "title": "Smart Contract Opcode Preprocessing Ablation Model Manifest",
+  "created_at": "2026-10-11T15:01:29Z",
+  "scikit_learn_version": "1.5.3",
+  "models": [
+    {
+      "dataset_name": "Etherlock",
+      "dataset_key": "etherlock",
+      "configuration": "with_operands",
+      "config_label": "With Opcode Values",
+      "model_file": "backend/models/etherlock_with_operands_model.joblib",
+      "vectorizer_file": "backend/models/etherlock_with_operands_vectorizer.joblib",
+      "legacy_model_file": "backend/etherlock_decisiontree.joblib",
+      "legacy_vectorizer_file": "backend/etherlock_vectorizer.joblib",
+      "vocab_size": 65372,
+      "expected_feature_count": 65372,
+      "metrics": {
+        "accuracy": 0.9688995215311005,
+        "precision": 0.7258064516129032,
+        "recall": 0.6716417910447762,
+        "f1": 0.6976744186046512,
+        "roc_auc": 0.8286599856656063,
+        "confusion_matrix": [
+          [
+            1170,
+            17
+          ],
+          [
+            22,
+            45
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 22.264561414718628,
+        "tfidf_fit_time": 47.27801823616028,
+        "classifier_fit_time": 39.76758337020874,
+        "total_pipeline_train_time": 87.04560160636902,
+        "inference_time": 11.499552488327026
+      }
+    },
+    {
+      "dataset_name": "Etherlock",
+      "dataset_key": "etherlock",
+      "configuration": "without_operands",
+      "config_label": "Without Opcode Values",
+      "model_file": "backend/models/etherlock_without_operands_model.joblib",
+      "vectorizer_file": "backend/models/etherlock_without_operands_vectorizer.joblib",
+      "legacy_model_file": null,
+      "legacy_vectorizer_file": null,
+      "vocab_size": 40774,
+      "expected_feature_count": 40774,
+      "metrics": {
+        "accuracy": 0.9665071770334929,
+        "precision": 0.7192982456140351,
+        "recall": 0.6119402985074627,
+        "f1": 0.6612903225806451,
+        "roc_auc": 0.7992304693885249,
+        "confusion_matrix": [
+          [
+            1171,
+            16
+          ],
+          [
+            26,
+            41
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 15.459760189056396,
+        "tfidf_fit_time": 23.46598243713379,
+        "classifier_fit_time": 21.94642996788025,
+        "total_pipeline_train_time": 45.41241240501404,
+        "inference_time": 5.643621921539307
+      }
+    },
+    {
+      "dataset_name": "Block Dependency",
+      "dataset_key": "block_dependancy",
+      "configuration": "with_operands",
+      "config_label": "With Opcode Values",
+      "model_file": "backend/models/block_dependancy_with_operands_model.joblib",
+      "vectorizer_file": "backend/models/block_dependancy_with_operands_vectorizer.joblib",
+      "legacy_model_file": "backend/block_dependancy_decisiontree.joblib",
+      "legacy_vectorizer_file": "backend/block_dependancy_vectorizer.joblib",
+      "vocab_size": 65273,
+      "expected_feature_count": 65273,
+      "metrics": {
+        "accuracy": 0.9540918163672655,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "roc_auc": 0.49126413155190135,
+        "confusion_matrix": [
+          [
+            956,
+            17
+          ],
+          [
+            29,
+            0
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 16.364827394485474,
+        "tfidf_fit_time": 38.34957003593445,
+        "classifier_fit_time": 44.90511345863342,
+        "total_pipeline_train_time": 83.25468349456787,
+        "inference_time": 9.765087842941284
+      }
+    },
+    {
+      "dataset_name": "Block Dependency",
+      "dataset_key": "block_dependancy",
+      "configuration": "without_operands",
+      "config_label": "Without Opcode Values",
+      "model_file": "backend/models/block_dependancy_without_operands_model.joblib",
+      "vectorizer_file": "backend/models/block_dependancy_without_operands_vectorizer.joblib",
+      "legacy_model_file": null,
+      "legacy_vectorizer_file": null,
+      "vocab_size": 38259,
+      "expected_feature_count": 38259,
+      "metrics": {
+        "accuracy": 0.9550898203592815,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "roc_auc": 0.49177800616649536,
+        "confusion_matrix": [
+          [
+            957,
+            16
+          ],
+          [
+            29,
+            0
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 11.71933650970459,
+        "tfidf_fit_time": 16.917707204818726,
+        "classifier_fit_time": 23.992846250534058,
+        "total_pipeline_train_time": 40.91055345535278,
+        "inference_time": 4.534595727920532
+      }
+    },
+    {
+      "dataset_name": "Integer Underflow / Overflow",
+      "dataset_key": "integer",
+      "configuration": "with_operands",
+      "config_label": "With Opcode Values",
+      "model_file": "backend/models/integer_with_operands_model.joblib",
+      "vectorizer_file": "backend/models/integer_with_operands_vectorizer.joblib",
+      "legacy_model_file": "backend/integer_decisiontree.joblib",
+      "legacy_vectorizer_file": "backend/integer_vectorizer.joblib",
+      "vocab_size": 65514,
+      "expected_feature_count": 65514,
+      "metrics": {
+        "accuracy": 0.8198970840480274,
+        "precision": 0.47770700636942676,
+        "recall": 0.3694581280788177,
+        "f1": 0.4166666666666667,
+        "roc_auc": 0.6421537784734691,
+        "confusion_matrix": [
+          [
+            881,
+            82
+          ],
+          [
+            128,
+            75
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 22.146730422973633,
+        "tfidf_fit_time": 49.38103914260864,
+        "classifier_fit_time": 34.44899320602417,
+        "total_pipeline_train_time": 83.83003234863281,
+        "inference_time": 3.8038747310638428
+      }
+    },
+    {
+      "dataset_name": "Integer Underflow / Overflow",
+      "dataset_key": "integer",
+      "configuration": "without_operands",
+      "config_label": "Without Opcode Values",
+      "model_file": "backend/models/integer_without_operands_model.joblib",
+      "vectorizer_file": "backend/models/integer_without_operands_vectorizer.joblib",
+      "legacy_model_file": null,
+      "legacy_vectorizer_file": null,
+      "vocab_size": 41158,
+      "expected_feature_count": 41158,
+      "metrics": {
+        "accuracy": 0.8310463121783876,
+        "precision": 0.5192307692307693,
+        "recall": 0.39901477832512317,
+        "f1": 0.45125348189415043,
+        "roc_auc": 0.6605665791937143,
+        "confusion_matrix": [
+          [
+            888,
+            75
+          ],
+          [
+            122,
+            81
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 13.689404249191284,
+        "tfidf_fit_time": 17.842365741729736,
+        "classifier_fit_time": 13.748022079467773,
+        "total_pipeline_train_time": 31.59038782119751,
+        "inference_time": 4.942460536956787
+      }
+    },
+    {
+      "dataset_name": "Reentrancy",
+      "dataset_key": "reentrancy",
+      "configuration": "with_operands",
+      "config_label": "With Opcode Values",
+      "model_file": "backend/models/reentrancy_with_operands_model.joblib",
+      "vectorizer_file": "backend/models/reentrancy_with_operands_vectorizer.joblib",
+      "legacy_model_file": "backend/reentrancy_decisiontree.joblib",
+      "legacy_vectorizer_file": "backend/reentrancy_vectorizer.joblib",
+      "vocab_size": 65380,
+      "expected_feature_count": 65380,
+      "metrics": {
+        "accuracy": 0.9093539054966249,
+        "precision": 0.34615384615384615,
+        "recall": 0.38571428571428573,
+        "f1": 0.36486486486486486,
+        "roc_auc": 0.6664869256906486,
+        "confusion_matrix": [
+          [
+            916,
+            51
+          ],
+          [
+            43,
+            27
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 20.46740961074829,
+        "tfidf_fit_time": 43.48317909240723,
+        "classifier_fit_time": 71.25764989852905,
+        "total_pipeline_train_time": 114.74082899093628,
+        "inference_time": 12.42475152015686
+      }
+    },
+    {
+      "dataset_name": "Reentrancy",
+      "dataset_key": "reentrancy",
+      "configuration": "without_operands",
+      "config_label": "Without Opcode Values",
+      "model_file": "backend/models/reentrancy_without_operands_model.joblib",
+      "vectorizer_file": "backend/models/reentrancy_without_operands_vectorizer.joblib",
+      "legacy_model_file": null,
+      "legacy_vectorizer_file": null,
+      "vocab_size": 39337,
+      "expected_feature_count": 39337,
+      "metrics": {
+        "accuracy": 0.9257473481195757,
+        "precision": 0.43137254901960786,
+        "recall": 0.3142857142857143,
+        "f1": 0.36363636363636365,
+        "roc_auc": 0.6421480277736741,
+        "confusion_matrix": [
+          [
+            938,
+            29
+          ],
+          [
+            48,
+            22
+          ]
+        ]
+      },
+      "timings_seconds": {
+        "preprocessing_time": 12.810072183609009,
+        "tfidf_fit_time": 18.77182149887085,
+        "classifier_fit_time": 23.10528874397278,
+        "total_pipeline_train_time": 41.87711024284363,
+        "inference_time": 5.280591726303101
+      }
+    }
+  ]
+}
